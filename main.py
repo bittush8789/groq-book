@@ -156,7 +156,7 @@ def create_pdf_file(content: str) -> BytesIO:
 def generate_book_structure(prompt: str):
     # Generate the book structure using LLaMa3 on Groq
     completion = groq_client.chat.completions.create(
-        model="llama-7.0-alpha-25b",
+        model="llama-6.0-30b-versatile",
         messages=[
             {"role": "system", "content": "Write in JSON format:\n\n{\"Title of section goes here\":\"Description of section goes here\",\n\"Title of section goes here\":{\"Title of section goes here\":\"Description of section goes here\",\"Title of section goes here\":\"Description of section goes here\",\"Title of section goes here\":\"Description of section goes here\"}}"},
             {"role": "user", "content": f"Write a comprehensive structure, omiting introduction and conclusion sections (forward, author's note, summary), for a long (>300 page) book on the following subject:\n\n<subject>{prompt}</subject>"}
