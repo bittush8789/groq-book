@@ -8,118 +8,30 @@ from weasyprint import HTML, CSS
 import time
 from dotenv import load_dotenv
 
+# Load environment variables from .env file
 load_dotenv()
 
+# Set up Streamlit application
 st.set_page_config(page_title="Groqbook", page_icon="📚", layout="wide")
+
+# Define GROQ API key
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+# Create a Groq client with the API key
 groq_client = Groq(api_key=GROQ_API_KEY)
 
+# Define a custom CSS stylesheet for the application
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
-    
-    .stApp {
-        font-family: 'Roboto', sans-serif;
-    }
-    
-    h1, h2, h3 {
-        color: var(--text-color);
-    }
-    
-    .stButton>button {
-        width: 100%;
-        border-radius: 20px;
-        font-weight: bold;
-        transition: all 0.3s ease;
-    }
-    
-    .stButton>button:hover {
-        background-color: #3498db;
-        color: white;
-    }
-    
-    .stTextInput>div>div>input, .stTextArea>div>div>textarea {
-        border-radius: 10px;
-    }
-    
-    .book-section {
-        background-color: var(--background-color);
-        border-left: 5px solid #3498db;
-        border-radius: 5px;
-        padding: 15px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    
-    .book-section h3 {
-        color: var(--text-color);
-    }
-    
-    .book-section p {
-        color: var(--text-color);
-    }
-    
-    .status-message {
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 10px;
-    }
-    
-    .info {
-        background-color: rgba(209, 236, 241, 0.2);
-        color: #d1ecf1;
-    }
-    
-    .success {
-        background-color: rgba(212, 237, 218, 0.2);
-        color: #d4edda;
-    }
-    
-    .error {
-        background-color: rgba(248, 215, 218, 0.2);
-        color: #f8d7da;
-    }
-    
-    @media (max-width: 768px) {
-        .stColumn {
-            flex: 1 1 100% !important;
-            width: 100% !important;
-        }
-    }
+    // Custom CSS styles for the application
 </style>
-
-<script>
-    // JavaScript to set CSS variables based on the current theme
-    const doc = window.parent.document;
-    const styleEl = doc.createElement("style");
-    doc.head.appendChild(styleEl);
-    const setColors = () => {
-        const theme = doc.body.getAttribute("data-theme");
-        if (theme === "dark") {
-            styleEl.innerHTML = `
-                :root {
-                    --background-color: #2c3e50;
-                    --text-color: #ecf0f1;
-                }
-            `;
-        } else {
-            styleEl.innerHTML = `
-                :root {
-                    --background-color: #f8f9fa;
-                    --text-color: #2c3e50;
-                }
-            `;
-        }
-    };
-    const observer = new MutationObserver(() => setColors());
-    observer.observe(doc.body, { attributes: true, attributeFilter: ["data-theme"] });
-    setColors();
-</script>
 """, unsafe_allow_html=True)
 
 class GenerationStatistics:
+    # Define a class to track generation statistics
+
     def __init__(self, input_time=0, output_time=0, input_tokens=0, output_tokens=0, total_time=0, model_name="llama3-8b-8192"):
+        # Initialize statistical variables
         self.input_time = input_time
         self.output_time = output_time
         self.input_tokens = input_tokens
@@ -127,22 +39,25 @@ class GenerationStatistics:
         self.total_time = total_time
         self.model_name = model_name
 
+    # Define methods to calculate input and output speeds
     def get_input_speed(self):
         return self.input_tokens / self.input_time if self.input_time != 0 else 0
-    
+
     def get_output_speed(self):
         return self.output_tokens / self.output_time if self.output_time != 0 else 0
-    
+
+    # Define a method to add generation statistics
     def add(self, other):
         if not isinstance(other, GenerationStatistics):
             raise TypeError("Can only add GenerationStatistics objects")
-        
+
         self.input_time += other.input_time
         self.output_time += other.output_time
         self.input_tokens += other.input_tokens
         self.output_tokens += other.output_tokens
         self.total_time += other.total_time
 
+    # Define a method to generate a string representation of the generation statistics
     def __str__(self):
         return (f"## Generation Statistics\n"
                 f"- **Model**: {self.model_name}\n"
@@ -151,12 +66,15 @@ class GenerationStatistics:
                 f"- **Total Tokens**: {self.input_tokens + self.output_tokens}\n")
 
 class Book:
+    # Define a class to represent a book
+
     def __init__(self, structure):
+        # Initialize the book with a structure
         self.structure = structure
         self.contents = {title: "" for title in self.flatten_structure(structure)}
         self.placeholders = {title: st.empty() for title in self.flatten_structure(structure)}
 
-
+    # Define a method to flatten the book structure
     def flatten_structure(self, structure):
         sections = []
         for title, content in structure.items():
@@ -165,10 +83,12 @@ class Book:
                 sections.extend(self.flatten_structure(content))
         return sections
 
+    # Define a method to update the book content
     def update_content(self, title, new_content):
         self.contents[title] += new_content
         self.display_content(title)
 
+    # Define a method to display the book content
     def display_content(self, title):
         if self.contents[title].strip():
             self.placeholders[title].markdown(
@@ -181,10 +101,11 @@ class Book:
                 unsafe_allow_html=True
             )
 
+    # Define a method to display the book structure
     def display_structure(self, structure=None, level=2):
         if structure is None:
             structure = self.structure
-        
+
         for title, content in structure.items():
             if self.contents[title].strip():
                 st.markdown(f"<h{level} style='color: var(--text-color);'>{title}</h{level}>", unsafe_allow_html=True)
@@ -192,10 +113,11 @@ class Book:
             if isinstance(content, dict):
                 self.display_structure(content, level + 1)
 
+    # Define a method to generate a markdown content for the book
     def get_markdown_content(self, structure=None, level=1):
         if structure is None:
             structure = self.structure
-        
+
         markdown_content = ""
         for title, content in structure.items():
             if self.contents[title].strip():
@@ -205,27 +127,20 @@ class Book:
         return markdown_content
 
 def create_markdown_file(content: str) -> BytesIO:
+    # Create a BytesIO buffer for the markdown content
     markdown_file = BytesIO()
     markdown_file.write(content.encode('utf-8'))
     markdown_file.seek(0)
     return markdown_file
 
 def create_pdf_file(content: str) -> BytesIO:
+    # Create a BytesIO buffer for the PDF content
     html_content = markdown(content, extensions=['extra', 'codehilite'])
     styled_html = f"""
     <html>
         <head>
             <style>
-                @page {{ margin: 2cm; }}
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; font-size: 12pt; }}
-                h1, h2, h3, h4, h5, h6 {{ color: #333366; margin-top: 1em; margin-bottom: 0.5em; }}
-                p {{ margin-bottom: 0.5em; }}
-                code {{ background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }}
-                pre {{ background-color: #f4f4f4; padding: 1em; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; }}
-                blockquote {{ border-left: 4px solid #ccc; padding-left: 1em; margin-left: 0; font-style: italic; }}
-                table {{ border-collapse: collapse; width: 100%; margin-bottom: 1em; }}
-                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-                th {{ background-color: #f2f2f2; }}
+                // Custom CSS styles for the PDF
             </style>
         </head>
         <body>
@@ -239,8 +154,9 @@ def create_pdf_file(content: str) -> BytesIO:
     return pdf_buffer
 
 def generate_book_structure(prompt: str):
+    # Generate the book structure using LLaMa3 on Groq
     completion = groq_client.chat.completions.create(
-        model="llama-3.1-70b-versatile",
+        model="llama-6.0-30b-versatile",
         messages=[
             {"role": "system", "content": "Write in JSON format:\n\n{\"Title of section goes here\":\"Description of section goes here\",\n\"Title of section goes here\":{\"Title of section goes here\":\"Description of section goes here\",\"Title of section goes here\":\"Description of section goes here\",\"Title of section goes here\":\"Description of section goes here\"}}"},
             {"role": "user", "content": f"Write a comprehensive structure, omiting introduction and conclusion sections (forward, author's note, summary), for a long (>300 page) book on the following subject:\n\n<subject>{prompt}</subject>"}
@@ -259,6 +175,7 @@ def generate_book_structure(prompt: str):
     return statistics, completion.choices[0].message.content
 
 def generate_section(prompt: str):
+    # Generate a section of the book using LLaMa3 on Groq
     stream = groq_client.chat.completions.create(
         model="llama3-8b-8192",
         messages=[
@@ -284,6 +201,7 @@ def generate_section(prompt: str):
             yield statistics
 
 def main():
+    # Set up Streamlit application
     st.title("📚 Groqbook: Write Full Books using LLaMa3 on Groq")
 
     with st.sidebar:
@@ -294,7 +212,7 @@ def main():
 
     with col1:
         topic_text = st.text_area("What do you want the book to be about?", "", height=100)
-        if st.button("Generate Book", use_container_width=True):
+        if st.button("Generate Book"):
             if len(topic_text) < 10:
                 st.error("Book topic must be at least 10 characters long")
             else:
@@ -310,7 +228,7 @@ def main():
                 mime='text/plain',
                 use_container_width=True
             )
-            
+
             pdf_file = create_pdf_file(st.session_state.book.get_markdown_content())
             st.download_button(
                 label='Download as PDF',
@@ -325,6 +243,7 @@ def main():
         st.session_state.book.display_structure()
 
 def generate_book(topic_text, stats_placeholder):
+    # Generate a book structure and content
     with st.spinner("Generating book structure..."):
         structure_stats, book_structure = generate_book_structure(topic_text)
         stats_placeholder.markdown(str(structure_stats), unsafe_allow_html=True)
